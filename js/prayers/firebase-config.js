@@ -15,10 +15,11 @@
 ============================================================ */
 
 export const firebaseConfig = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: "AIzaSyApNKO_Mn5ge3jfJi-8DhxCF9AMbK27wqI",
+  authDomain: "still-water-eaff7.firebaseapp.com",
+  projectId: "still-water-eaff7",
+  storageBucket: "still-water-eaff7.firebasestorage.app",
+  messagingSenderId: "273459286741",
+  appId: "1:273459286741:web:60e95d2bcc50d98ef2c85c",
+  measurementId: "G-JSL7T2P2Z4"
 };

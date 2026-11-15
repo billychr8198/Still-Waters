@@ -1,0 +1,33 @@
+// STILL WATERS — who may read and write what, in Firestore.
+// Paste this whole file into: Firebase console → Firestore Database → Rules → Publish.
+//
+// In plain words: a signed-in person can read and change only their own
+// prayer list and calendar. Nobody else can, signed in or not.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // users/{uid}: which built-in prayers this person removed from their list
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // users/{uid}/prayers/{id}: prayers they added themselves
+      match /prayers/{prayerId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // users/{uid}/log/{YYYY-MM}: which prayers they recited on each day of that month
+      match /log/{month} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Everything else is closed.
+  }
+}

@@ -1,0 +1,258 @@
+/* ============================================================
+   STILL WATERS — the niche
+   A small round-headed shrine niche, its vault painted lapis and
+   scattered with faint gold stars (after the Scrovegni Chapel), where
+   the 3D figures of Christ and Our Lady stand on a stone ledge.
+   The ledge's front face is an inscription: a verse appears there
+   after each gesture.
+
+   Floats in the lower-right corner and can be tucked away to a small
+   arch. For the hero instead, see the note at the end of this file.
+   Uses the colour and type tokens already defined in style.css.
+============================================================ */
+
+.sw-niche {
+  --sw-width: clamp(150px, 15vw, 212px);
+  --sw-gap: clamp(12px, 2vw, 22px);
+  --sw-arch: 50% 50% 12px 12px / 29% 29% 12px 12px;
+  position: fixed;
+  right: max(var(--sw-gap), env(safe-area-inset-right));
+  bottom: max(var(--sw-gap), env(safe-area-inset-bottom));
+  z-index: 45;                 /* above the page, below the modals (60) */
+  width: var(--sw-width);
+  font-family: var(--font-body, Georgia, serif);
+}
+/* Hidden until niche.js runs, and for good if it can't start (no WebGL, Three.js blocked, opened from file://). */
+.sw-niche:not([data-state]),
+.sw-niche[data-state="error"] { display: none; }
+
+/* ---------- the niche itself ---------- */
+.sw-niche__frame {
+  position: relative;
+  aspect-ratio: 3 / 4.3;
+  border-radius: var(--sw-arch);
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    /* light falling from above into the niche */
+    radial-gradient(110% 60% at 50% 14%, rgba(210, 180, 114, .30), transparent 64%),
+    /* a scatter of gold stars in the vault */
+    radial-gradient(1.3px 1.3px at 22% 16%, rgba(236, 212, 150, .85), transparent),
+    radial-gradient(1px 1px at 37% 8%, rgba(236, 212, 150, .7), transparent),
+    radial-gradient(1.4px 1.4px at 63% 11%, rgba(236, 212, 150, .8), transparent),
+    radial-gradient(1px 1px at 79% 19%, rgba(236, 212, 150, .65), transparent),
+    radial-gradient(1.2px 1.2px at 14% 31%, rgba(236, 212, 150, .6), transparent),
+    radial-gradient(1px 1px at 88% 34%, rgba(236, 212, 150, .55), transparent),
+    radial-gradient(1.1px 1.1px at 50% 4.5%, rgba(236, 212, 150, .75), transparent),
+    linear-gradient(180deg, #2a3872 0%, var(--lapis, #1e2a55) 48%, var(--lapis-deep, #141c3a) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(210, 180, 114, .38),
+    0 3px 10px rgba(20, 28, 58, .16),
+    0 18px 44px rgba(20, 28, 58, .28);
+  animation: sw-open .7s cubic-bezier(.2, .7, .3, 1);
+}
+.sw-niche__frame[hidden] { display: none; }
+
+/* a second, thinner arch inside the first: the same tracery as the home-page window */
+.sw-niche__frame::before {
+  content: "";
+  position: absolute;
+  inset: 7px 7px 0;
+  border: 1px solid rgba(210, 180, 114, .22);
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 27% 27% 0 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sw-niche__stage {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  border-radius: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-niche__stage:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gold-light, #d2b472);
+}
+
+.sw-niche__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+.sw-niche[data-state="ready"] .sw-niche__canvas { opacity: 1; }
+
+/* ---------- loading: a halo being traced ---------- */
+.sw-niche__loader {
+  position: absolute;
+  inset: 0 0 20% 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: .7rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .8s ease;
+  z-index: 1;
+}
+.sw-niche[data-state="loading"] .sw-niche__loader { opacity: 1; }
+
+.sw-niche__spinner {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 18%, rgba(210, 180, 114, .35) 45%, var(--gold-light, #d2b472) 88%, #fff3d2 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  animation: sw-trace 3.2s linear infinite;
+}
+/* the soft glow breathes at the same pace as the figures do */
+.sw-niche__loader::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  margin: -54px 0 0 -35px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(210, 180, 114, .32), transparent);
+  animation: sw-breathe 5.6s ease-in-out infinite;
+}
+.sw-niche__loader-text {
+  font-family: var(--font-display, Georgia, serif);
+  font-style: italic;
+  font-size: .8rem;
+  color: rgba(236, 230, 214, .72);
+  max-width: none;
+}
+
+/* ---------- the ledge, with its inscription ---------- */
+.sw-niche__inscription {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 19%;
+  z-index: 3;
+  margin: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .12rem;
+  padding: 0 .7rem .1rem;
+  text-align: center;
+  background: linear-gradient(180deg, #ece8de 0%, #dfdacd 100%);
+  border-top: 1px solid rgba(168, 134, 60, .6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
+  pointer-events: none;
+}
+.sw-niche__verse {
+  display: block;
+  font-family: var(--font-display, Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(.74rem, .88vw, .86rem);
+  line-height: 1.16;
+  color: var(--lapis, #1e2a55);
+  transition: opacity .32s ease;
+}
+.sw-niche__ref {
+  display: block;
+  font-size: .52rem;
+  font-weight: 500;
+  letter-spacing: .2em;
+  text-transform: uppercase;   /* the site's verse-reference style */
+  color: var(--gold-leaf, #a8863c);
+  transition: opacity .32s ease;
+}
+.sw-niche__ref:empty { display: none; }
+.sw-niche__inscription.is-hint .sw-niche__verse { font-weight: 400; color: var(--olive, #6b7658); }
+.sw-niche__inscription.is-changing .sw-niche__verse,
+.sw-niche__inscription.is-changing .sw-niche__ref { opacity: 0; }
+
+/* ---------- hide / show ---------- */
+.sw-niche__hide {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--stone, #dad8ce);
+  background: var(--card, #f8f7f2);
+  color: var(--lapis, #1e2a55);
+  box-shadow: 0 4px 12px rgba(20, 28, 58, .18);
+  opacity: .88;
+  transition: opacity .25s, background .25s, color .25s;
+}
+.sw-niche__hide:hover { opacity: 1; background: var(--lapis, #1e2a55); color: var(--limewash, #efeee8); }
+.sw-niche__hide svg { width: 12px; height: 12px; }
+
+.sw-niche__show {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 60px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid rgba(210, 180, 114, .6);
+  border-radius: 50% 50% 8px 8px / 36% 36% 8px 8px;
+  background:
+    radial-gradient(90% 60% at 50% 28%, rgba(210, 180, 114, .38), transparent 72%),
+    linear-gradient(180deg, #2a3872, var(--lapis-deep, #141c3a));
+  color: var(--gold-light, #d2b472);
+  box-shadow: 0 10px 26px rgba(20, 28, 58, .3);
+  transition: transform .3s cubic-bezier(.2, .7, .3, 1), box-shadow .3s;
+}
+.sw-niche__show:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(20, 28, 58, .36); }
+.sw-niche__show svg { width: 18px; height: 23px; }
+.sw-niche__hide[hidden], .sw-niche__show[hidden] { display: none; }
+
+/* ---------- motion ---------- */
+@keyframes sw-trace { to { transform: rotate(1turn); } }
+@keyframes sw-breathe { 0%, 100% { opacity: .55; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes sw-open { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+/* (style.css already stills every animation for anyone who prefers reduced motion) */
+
+@media (max-width: 640px) {
+  .sw-niche { --sw-width: 140px; }
+  .sw-niche__verse { font-size: .72rem; }
+}
+@media print { .sw-niche { display: none; } }
+
+/* ============================================================
+   HERO PLACEMENT (optional)
+   To stand the figures in the home-page hero instead of the corner:
+   move the <aside class="sw-niche"> into <div class="hero-window">
+   in place of the stained-glass <svg>, remove aria-hidden="true" from
+   that div, and set data-placement="hero" on the aside.
+============================================================ */
+.sw-niche[data-placement="hero"] {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: min(300px, 82%);
+  margin: 0 auto;
+}
+.sw-niche[data-placement="hero"] .sw-niche__hide,
+.sw-niche[data-placement="hero"] .sw-niche__show { display: none; }
+@media (max-width: 860px) {
+  .sw-niche[data-placement="hero"] { width: min(220px, 62%); }
+}
+.sw-niche[data-placement="hero"] .sw-niche__verse { font-size: clamp(.8rem, 1.2vw, 1.02rem); }
+.sw-niche[data-placement="hero"] .sw-niche__ref { font-size: .6rem; }
